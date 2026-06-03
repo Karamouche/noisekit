@@ -65,14 +65,14 @@ Built-in presets:
 
 ### Atomic Presets
 
-| Preset                 | Scenario                                              | Bandwidth           | PESQ mode | Target MOS |
-| ---------------------- | ----------------------------------------------------- | ------------------- | --------- | ---------- |
-| `clean_reference`      | Minimal gain normalization (PESQ ceiling)             | full                | WB 16 kHz | 4.0-4.5    |
-| `telecom`              | G.711 call + low-bitrate MP3 codec artifacts          | 300-3400 Hz @ 8 kHz | NB 8 kHz  | 2.0-3.5    |
-| `low_bitrate`    | Wideband low-bitrate MP3 compression (16-32 kbps)     | 80-7500 Hz @ 16 kHz | WB 16 kHz | 1.5-2.5    |
-| `noise`                | Real ambient noise via `AddBackgroundNoise`           | up to 8-12 kHz      | WB 16 kHz | 2.0-3.5    |
-| `clipping`             | Microphone overload / ADC saturation (`ClippingDistortion` 10-25%) | full | WB 16 kHz | 2.0-3.5    |
-| `reverb`               | Far-field reverberant room via `RoomSimulator`                              | full | WB 16 kHz | 2.0-3.5 |
+| Preset            | Scenario                                                                      | Bandwidth           | PESQ mode | Target MOS |
+| ----------------- | ----------------------------------------------------------------------------- | ------------------- | --------- | ---------- |
+| `clean_reference` | Minimal gain normalization (PESQ ceiling)                                     | full                | WB 16 kHz | 4.0-4.5    |
+| `telecom`         | G.711 call: mu-law companding (ITU-T G.711) + low-bitrate MP3 codec artifacts | 300-3400 Hz @ 8 kHz | NB 8 kHz  | 3.5-4.5    |
+| `low_bitrate`     | Wideband low-bitrate MP3 compression (16-32 kbps)                             | 80-7500 Hz @ 16 kHz | WB 16 kHz | 1.5-2.5    |
+| `noise`           | Real ambient noise via `AddBackgroundNoise`                                   | up to 8-12 kHz      | WB 16 kHz | 2.0-3.5    |
+| `clipping`        | Microphone overload / ADC saturation (`ClippingDistortion` 10-25%)            | full                | WB 16 kHz | 2.0-3.5    |
+| `reverb`          | Far-field reverberant room via `RoomSimulator`                                | full                | WB 16 kHz | 2.0-3.5    |
 
 `telecom` and any compound preset ending with `telecom` use the 8 kHz PESQ NB scoring split (see below). All other presets score in PESQ WB at 16 kHz.
 
@@ -80,11 +80,11 @@ Built-in presets:
 
 Compound presets chain two or more atomic presets together. Noise is added first (acoustic environment), then codec/dropout (digital processing of the already-degraded signal).
 
-| Preset             | Chain                                     | Requires      | PESQ mode | Target MOS |
-| ------------------ | ----------------------------------------- | ------------- | --------- | ---------- |
-| `noise_telecom`    | `noise` → `telecom`                       | `--noise-dir` | NB 8 kHz  | 1.5-2.5    |
-| `noise_reverb`     | `noise` → `reverb`                        | `--noise-dir` | WB 16 kHz | 1.0-2.5    |
-| `clipping_telecom` | `clipping` → `telecom`                    | —             | NB 8 kHz  | 1.0-2.5    |
+| Preset             | Chain                  | Requires      | PESQ mode | Target MOS |
+| ------------------ | ---------------------- | ------------- | --------- | ---------- |
+| `noise_telecom`    | `noise` → `telecom`    | `--noise-dir` | NB 8 kHz  | 1.5-2.5    |
+| `noise_reverb`     | `noise` → `reverb`     | `--noise-dir` | WB 16 kHz | 1.0-2.5    |
+| `clipping_telecom` | `clipping` → `telecom` | —             | NB 8 kHz  | 1.0-2.5    |
 
 ### Compound Preset YAML Format
 
@@ -99,6 +99,7 @@ chain:
 ```
 
 Rules:
+
 - `chain` and `transforms` are mutually exclusive.
 - Chained entries must be names of built-in atomic presets (no nesting chains).
 - `${NOISE_DIR}` resolution and the PESQ NB scoring split are detected automatically across the full concatenated chain.
@@ -117,7 +118,9 @@ For `telecom`, PESQ is computed at **8 kHz narrowband** on the audio **before** 
 
 **Why:** Computing PESQ NB by downsampling the 16 kHz output (8k→16k→8k round-trip) collapses all telephony scores to ~1.1 regardless of noise level. Scoring at the 8 kHz intermediate stage gives proper stratification.
 
-**BitCrush + Normalize:** `telecom` inserts `Normalize(p=1.0)` immediately before `BitCrush`. HuggingFace speech datasets (e.g., FLEURS) often have very low peak amplitude (~0.001-0.02). At 8-bit depth the quantization step is 0.0078 — a peak below one step rounds the entire signal to zero. Normalizing to ±1 before quantization ensures all 256 levels are used.
+**MuLawCompanding + Normalize:** `telecom` inserts `Normalize(p=1.0)` immediately before `MuLawCompanding`. HuggingFace speech datasets (e.g., FLEURS) often have very low peak amplitude (~0.001-0.02). G.711 mu-law uses all 256 quantization levels only when the input is near full-scale; without normalization, low-amplitude signals collapse into the few quantization steps near zero. Normalizing to ±1 before companding ensures consistent quantization behavior.
+
+`MuLawCompanding` is implemented via a `soundfile` WAV round-trip with `subtype='ULAW'`, which uses libsndfile's ITU-T G.711 segmented algorithm — byte-identical to real G.711 PCMU hardware and VoIP stacks (Asterisk, FreeSWITCH). This replaced an earlier smooth-log NumPy approximation that did not match the true piecewise-linear segmented encoding of the spec.
 
 ## Input Normalization — Global Pipeline Decision
 
@@ -131,7 +134,7 @@ if peak > 1e-9:
 
 **Why:** HuggingFace datasets often have peaks as low as 0.001–0.02. Without normalization, `AddBackgroundNoise` (relative SNR mode) scales noise proportional to that tiny signal RMS — both speech and noise end up inaudible, and 16-bit PCM quantization noise dominates. Peak normalization guarantees all presets receive a full-scale signal.
 
-**Safety:** The same normalized `ref_16k` is used as both the transform input and the PESQ/SNR reference, so all quality metrics remain valid relative comparisons. The mid-chain `Normalize` inside `telecom.yaml` (before `BitCrush`) is still needed separately — the bandpass filter removes energy and that step re-normalizes before quantization.
+**Safety:** The same normalized `ref_16k` is used as both the transform input and the PESQ/SNR reference, so all quality metrics remain valid relative comparisons. The mid-chain `Normalize` inside `telecom.yaml` (before `MuLawCompanding`) is still needed separately — the bandpass filter removes energy and that step re-normalizes before companding.
 
 **`noise` also pre-normalizes:** `noise.yaml` adds a `Normalize` as its first transform. This handles the `noise_reverb` compound case: `RoomSimulator` can attenuate the signal by ~10× at large mic distances; without the mid-chain normalize, `AddBackgroundNoise` would see the attenuated level and mix noise too quietly. All compound presets using `noise` inherit this fix automatically.
 

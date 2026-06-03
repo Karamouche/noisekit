@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
 from typing import NamedTuple
 
 import audiomentations
 import numpy as np
+import soundfile as sf
 import yaml
 from audiomentations.core.transforms_interface import BaseWaveformTransform
 
@@ -58,6 +60,24 @@ def _resolve_params(t: dict, noise_dir: Path | None) -> dict:
     return params
 
 
+class MuLawCompanding(BaseWaveformTransform):
+    """G.711 mu-law companding via libsndfile's ULAW codec (true ITU-T G.711 segmented algorithm).
+
+    Uses a soundfile WAV round-trip (subtype='ULAW') — byte-identical to real G.711 PCMU hardware.
+    Input should be full-scale (use Normalize beforehand).
+    """
+
+    supports_multichannel = True
+
+    def apply(self, samples: np.ndarray, sample_rate: int) -> np.ndarray:
+        buf = io.BytesIO()
+        # soundfile expects (samples, channels); audiomentations uses (channels, samples)
+        sf.write(buf, samples.T if samples.ndim == 2 else samples, sample_rate, subtype="ULAW", format="WAV")
+        buf.seek(0)
+        decoded, _ = sf.read(buf, dtype="float32")
+        return decoded.T if decoded.ndim == 2 else decoded
+
+
 def preset_requires_noise_dir(name: str, preset_file: Path | None = None) -> bool:
     """Peek at a preset YAML and report whether it references ${NOISE_DIR}."""
     path = preset_file if preset_file is not None else Path(__file__).parent / "presets" / f"{name}.yaml"
@@ -103,14 +123,23 @@ def _collect_t_configs(cfg: dict, preset_file: Path | None, noise_dir: Path | No
     return combined
 
 
+_CUSTOM_TRANSFORMS: dict[str, type] = {
+    "MuLawCompanding": MuLawCompanding,
+}
+
+
 def _make_transform(t: dict, noise_dir: Path | None = None) -> BaseWaveformTransform:
     cls_name = t["type"]
-    if not hasattr(audiomentations, cls_name):
+    if cls_name in _CUSTOM_TRANSFORMS:
+        cls = _CUSTOM_TRANSFORMS[cls_name]
+    elif hasattr(audiomentations, cls_name):
+        cls = getattr(audiomentations, cls_name)
+    else:
         raise ValueError(
-            f"Unknown audiomentations transform: '{cls_name}'. "
-            f"Check the audiomentations docs for valid transform names."
+            f"Unknown transform: '{cls_name}'. "
+            f"Valid custom transforms: {sorted(_CUSTOM_TRANSFORMS)}. "
+            f"Check the audiomentations docs for built-in transform names."
         )
-    cls = getattr(audiomentations, cls_name)
     params = _resolve_params(t, noise_dir)
     p = float(t.get("p", 1.0))
     return cls(p=p, **params)
