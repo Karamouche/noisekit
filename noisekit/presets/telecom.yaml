@@ -1,5 +1,5 @@
 name: telecom
-description: "G.711-style telephone channel: 300–3400 Hz bandpass, 8 kHz narrowband, 8-bit PCM quantization, low-bitrate MP3 codec artifacts."
+description: "G.711-style telephone channel: 300–3400 Hz bandpass, 8 kHz narrowband, mu-law companding (ITU-T G.711), low-bitrate MP3 codec artifacts."
 transforms:
   - type: Resample
     parameters:
@@ -19,10 +19,7 @@ transforms:
   - type: Normalize
     parameters: {}
     p: 1.0
-  - type: BitCrush
-    parameters:
-      min_bit_depth: 8
-      max_bit_depth: 8
+  - type: MuLawCompanding
     p: 1.0
   - type: Mp3Compression
     parameters:

@@ -135,14 +135,14 @@ Nine built-in presets: six atomic scenarios, three compound multi-condition pres
 
 ### Atomic presets
 
-| Preset                 | Description                                                              | PESQ       |
-| ---------------------- | ------------------------------------------------------------------------ | ---------- |
-| `clean_reference`      | Minimal processing (PESQ ceiling / control)                              | 4.0-4.5    |
-| `telecom`              | G.711-style call: 8 kHz bandpass + 8-bit BitCrush + 16-32 kbps MP3 codec | NB 2.0-3.5 |
-| `low_bitrate`    | Wideband audio crushed by 16-32 kbps MP3 compression                     | WB 1.5-2.5 |
-| `noise`                | Real ambient noise from `--noise-dir` mixed in at SNR 5-15 dB            | WB 1.0-2.5 |
-| `clipping`             | Microphone overload: clips the loudest 10-25% of samples                 | WB 2.0-3.5 |
-| `reverb`               | Far-field room reverb at 1-3 m mic distance                              | WB 2.0-3.5 |
+| Preset            | Description                                                                               | PESQ       |
+| ----------------- | ----------------------------------------------------------------------------------------- | ---------- |
+| `clean_reference` | Minimal processing (PESQ ceiling / control)                                               | 4.0-4.5    |
+| `telecom`         | G.711-style call: 8 kHz bandpass + mu-law companding (ITU-T G.711) + 16-32 kbps MP3 codec | NB 3.5-4.5 |
+| `low_bitrate`     | Wideband audio crushed by 16-32 kbps MP3 compression                                      | WB 1.5-2.5 |
+| `noise`           | Real ambient noise from `--noise-dir` mixed in at SNR 5-15 dB                             | WB 1.0-2.5 |
+| `clipping`        | Microphone overload: clips the loudest 10-25% of samples                                  | WB 2.0-3.5 |
+| `reverb`          | Far-field room reverb at 1-3 m mic distance                                               | WB 2.0-3.5 |
 
 `telecom` is scored with PESQ narrowband at 8 kHz (before the final upsample); all other presets are scored wideband at 16 kHz.
 
@@ -154,11 +154,11 @@ All dependencies, including `pyroomacoustics` (used by `reverb`), are bundled wi
 
 Compound presets chain two atomic presets together. Noise is applied first (acoustic environment), then codec or dropout (digital processing on the already-degraded signal).
 
-| Preset             | Chain                                    | Noise source                   | PESQ       |
-| ------------------ | ---------------------------------------- | ------------------------------ | ---------- |
-| `noise_telecom`    | `noise` → `telecom`          | `--noise-dir` or auto-download | NB 1.5-2.5 |
-| `clipping_telecom` | `clipping` → `telecom`       | (none)                         | NB 1.0-2.5 |
-| `noise_reverb`     | `noise` → `reverb`           | `--noise-dir` or auto-download | WB 1.0-2.5 |
+| Preset             | Chain                  | Noise source                   | PESQ       |
+| ------------------ | ---------------------- | ------------------------------ | ---------- |
+| `noise_telecom`    | `noise` → `telecom`    | `--noise-dir` or auto-download | NB 1.5-2.5 |
+| `clipping_telecom` | `clipping` → `telecom` | (none)                         | NB 1.0-2.5 |
+| `noise_reverb`     | `noise` → `reverb`     | `--noise-dir` or auto-download | WB 1.0-2.5 |
 
 You can also define your own compound preset with a `chain:` key in a YAML file:
 
