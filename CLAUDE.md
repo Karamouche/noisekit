@@ -31,8 +31,8 @@ noisekit/
 ## CLI
 
 ```bash
-noisekit generate --dataset <hf-name> --samples N --presets P1 P2 --output ./out --seed 42
-noisekit generate ... --presets noise --noise-dir /path/to/noise_wavs
+noisekit generate --dataset <hf-name> --samples N --preset P1 --preset P2 --output ./out --seed 42
+noisekit generate ... --preset noise --noise-dir /path/to/noise_wavs
 noisekit generate ... --no-nisqa          # skip NISQA (no model download, faster)
 noisekit score ./audio_dir [--reference-dir ./ref] [--output scores.json]
 noisekit score ./audio_dir --no-nisqa     # skip NISQA for standalone scoring
@@ -179,44 +179,44 @@ uv run noisekit list-presets --verbose
 uv run noisekit generate \
   --dataset google/fleurs \
   --config en_us --split test \
-  --samples 3 --presets clean_reference telecom low_bitrate \
+  --samples 3 --preset clean_reference --preset telecom --preset low_bitrate \
   --output ./test_out --seed 42
 cat test_out/metadata.jsonl
 
 # New atomic presets — no external dependencies
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets clipping \
+  --samples 3 --preset clipping \
   --no-nisqa --output ./test_atomic --seed 42
 
 # noise — auto-downloads MUSAN noise-only clips on first run
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets noise \
+  --samples 3 --preset noise \
   --output ./test_noise --seed 42
 
 # Compound presets (auto-downloads MUSAN noise on first run)
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets noise_telecom \
+  --samples 3 --preset noise_telecom \
   --no-nisqa --output ./test_compound --seed 42
 
 # clipping_telecom — no noise dir needed
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets clipping_telecom \
+  --samples 3 --preset clipping_telecom \
   --no-nisqa --output ./test_clipping_telecom --seed 42
 
 # Far-field reverb
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets reverb noise_reverb \
+  --samples 3 --preset reverb --preset noise_reverb \
   --no-nisqa --output ./test_reverb --seed 42
 
 # noise with your own noise corpus (skips auto-download)
 uv run noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 3 --presets noise \
+  --samples 3 --preset noise \
   --noise-dir ~/datasets/musan/noise \
   --output ./test_noise --seed 42
 ```
