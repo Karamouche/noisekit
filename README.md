@@ -56,17 +56,20 @@ uvx noisekit generate \
   --config en_us \
   --split test \
   --samples 300 \
-  --presets telecom low_bitrate \
+  --preset telecom \
+  --preset low_bitrate \
   --output ./benchmark_dataset \
   --seed 42
 ```
+
+`--preset` is repeatable: pass it once per preset.
 
 For `noise`, you can supply your own background-noise WAVs with `--noise-dir` (e.g. [MUSAN](https://www.openslr.org/17/), [DEMAND](https://zenodo.org/record/1227121), or [FSD50K](https://zenodo.org/record/4060432)):
 
 ```bash
 uvx noisekit generate \
   --dataset google/fleurs --config en_us --split test \
-  --samples 300 --presets noise \
+  --samples 300 --preset noise \
   --noise-dir ~/datasets/musan/noise \
   --output ./benchmark_dataset --seed 42
 ```

@@ -20,7 +20,10 @@ console = Console()
 def generate(
     dataset: Annotated[str, typer.Option(help="HuggingFace dataset name (e.g. google/fleurs)")],
     samples: Annotated[int, typer.Option(help="Number of source samples to process")] = 100,
-    presets: Annotated[list[str] | None, typer.Option(help="Preset name(s) to apply. Repeatable.")] = None,
+    preset: Annotated[
+        list[str] | None,
+        typer.Option(help="Preset to apply. Repeatable: --preset telecom --preset clean_reference."),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option(help="Output directory. Omit to auto-create ./output/<timestamp>/")
     ] = None,
@@ -58,7 +61,7 @@ def generate(
     run_generate(
         dataset=dataset,
         samples=samples,
-        presets=list(presets) if presets else [],
+        presets=list(preset) if preset else [],
         output=resolved_output,
         seed=seed,
         split=split,
