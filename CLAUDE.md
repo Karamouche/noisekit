@@ -34,6 +34,7 @@ noisekit/
 noisekit generate --dataset <hf-name> --samples N --preset P1 --preset P2 --output ./out --seed 42
 noisekit generate ... --preset noise --noise-dir /path/to/noise_wavs
 noisekit generate ... --no-nisqa          # skip NISQA (no model download, faster)
+noisekit generate ... --transcript-column utterance  # override transcript column (default: text/sentence/transcription/normalized_text)
 noisekit score ./audio_dir [--reference-dir ./ref] [--output scores.json]
 noisekit score ./audio_dir --no-nisqa     # skip NISQA for standalone scoring
 noisekit list-presets [--verbose]

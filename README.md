@@ -64,6 +64,18 @@ uvx noisekit generate \
 
 `--preset` is repeatable: pass it once per preset.
 
+If your dataset stores transcripts under a different column name (e.g. `utterance`, `raw_text`, `translation`), use `--transcript-column`:
+
+```bash
+uvx noisekit generate \
+  --dataset my-org/my-dataset --split test \
+  --samples 100 --preset telecom \
+  --transcript-column utterance \
+  --output ./out
+```
+
+By default, noisekit tries these columns in order: `text`, `sentence`, `transcription`, `normalized_text`. An error is raised if none are found and `--transcript-column` is not set.
+
 For `noise`, you can supply your own background-noise WAVs with `--noise-dir` (e.g. [MUSAN](https://www.openslr.org/17/), [DEMAND](https://zenodo.org/record/1227121), or [FSD50K](https://zenodo.org/record/4060432)):
 
 ```bash
