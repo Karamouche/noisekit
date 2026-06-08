@@ -54,7 +54,13 @@ def extract_language(sample: dict, config: str | None = None) -> str | None:
     return None
 
 
-def extract_audio_and_text(sample: dict) -> tuple[np.ndarray, int, str]:
+_FALLBACK_TRANSCRIPT_COLS = ("text", "sentence", "transcription", "normalized_text")
+
+
+def extract_audio_and_text(
+    sample: dict,
+    transcript_column: str | None = None,
+) -> tuple[np.ndarray, int, str]:
     audio_field = sample["audio"]
 
     raw_bytes = audio_field.get("bytes")
@@ -73,11 +79,20 @@ def extract_audio_and_text(sample: dict) -> tuple[np.ndarray, int, str]:
     if array.ndim == 2:
         array = array.mean(axis=1)  # (samples, channels) → (samples,) for mono-only metrics
 
-    text = (
-        sample.get("text")
-        or sample.get("sentence")
-        or sample.get("transcription")
-        or sample.get("normalized_text")
-        or ""
-    )
+    if transcript_column is not None:
+        if transcript_column not in sample:
+            raise ValueError(
+                f"Transcript column '{transcript_column}' not found in dataset. "
+                f"Available columns: {list(sample.keys())}"
+            )
+        text = sample.get(transcript_column) or ""
+    else:
+        text = next((sample[c] for c in _FALLBACK_TRANSCRIPT_COLS if sample.get(c)), None)
+        if text is None:
+            raise ValueError(
+                f"No transcript column found. Tried: {list(_FALLBACK_TRANSCRIPT_COLS)}. "
+                f"Available columns: {list(sample.keys())}. "
+                "Use --transcript-column to specify the correct column."
+            )
+
     return array, int(sr), str(text).strip()

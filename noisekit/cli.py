@@ -46,6 +46,16 @@ def generate(
     nisqa: Annotated[
         bool, typer.Option("--nisqa/--no-nisqa", help="Compute NISQA scores (downloads ~50 MB model on first use)")
     ] = True,
+    transcript_column: Annotated[
+        str | None,
+        typer.Option(
+            "--transcript-column",
+            help=(
+                "Dataset column to use as the transcript. "
+                "Defaults to the first non-empty value among: text, sentence, transcription, normalized_text."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Generate a degraded speech dataset by applying audio presets to a clean source dataset."""
     console.print(
@@ -69,6 +79,7 @@ def generate(
         preset_file=preset_file,
         noise_dir=noise_dir,
         nisqa=nisqa,
+        transcript_column=transcript_column,
     )
 
 

@@ -35,6 +35,7 @@ def run_generate(
     preset_file: Path | None,
     noise_dir: Path | None = None,
     nisqa: bool = True,
+    transcript_column: str | None = None,
 ) -> None:
     output_dir = Path(output)
     audio_dir = output_dir / "audio"
@@ -55,7 +56,7 @@ def run_generate(
     _seen_names: set[str] = set()
 
     for i, sample in enumerate(track(raw_samples, description="Generating …")):
-        ref_array, ref_sr, transcript = extract_audio_and_text(sample)
+        ref_array, ref_sr, transcript = extract_audio_and_text(sample, transcript_column)
         language = extract_language(sample, config)
         ref_16k = _resample_to_16k(ref_array, ref_sr)
         peak = np.abs(ref_16k).max()
